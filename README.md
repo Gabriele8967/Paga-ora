@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Paga-Ora - Centro Biofertility
 
-## Getting Started
+Sistema di pagamento standalone per pazienti che hanno già usufruito di un servizio presso il Centro Biofertility.
 
-First, run the development server:
+## Caratteristiche
+
+- ✅ Form di pagamento con dati anagrafici completi
+- ✅ Inserimento importo e causale personalizzati
+- ✅ Pagamento sicuro tramite Stripe
+- ✅ Generazione automatica fattura con Fatture in Cloud
+- ✅ Invio email conferma cliente e centro
+- ✅ Generazione e invio modulo privacy
+- ✅ Calcolo automatico marca da bollo
+- ✅ Ottimizzato per deploy su Vercel
+
+## Installazione
+
+```bash
+npm install
+```
+
+## Configurazione
+
+1. Copia `.env.example` in `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+2. Compila le variabili d'ambiente nel file `.env.local`:
+
+### Stripe
+- Ottieni le chiavi da: https://dashboard.stripe.com/apikeys
+- Configura il webhook endpoint su: https://dashboard.stripe.com/webhooks
+- Eventi webhook necessari: `checkout.session.completed`
+
+### Fatture in Cloud
+- `FATTUREINCLOUD_ACCESS_TOKEN`: Token API da Impostazioni > API
+- `FATTUREINCLOUD_COMPANY_ID`: ID azienda
+- `FATTUREINCLOUD_PAYMENT_ACCOUNT_ID`: ID conto pagamento Stripe/Carta
+- `FATTUREINCLOUD_EXEMPT_VAT_ID`: ID aliquota IVA esente (0% per prestazioni sanitarie)
+
+### Gmail
+- Abilita autenticazione a 2 fattori sul tuo account Gmail
+- Crea una "Password per le app": https://myaccount.google.com/apppasswords
+- Usa quella password per `GMAIL_APP_PASSWORD`
+
+## Sviluppo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Apri [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy su Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Fai il push del progetto su GitHub
 
-## Learn More
+2. Importa il progetto su Vercel:
+```bash
+vercel
+```
 
-To learn more about Next.js, take a look at the following resources:
+3. Configura le variabili d'ambiente su Vercel Dashboard:
+   - Settings > Environment Variables
+   - Aggiungi tutte le variabili da `.env.local`
+   - **IMPORTANTE**: Imposta `NEXT_PUBLIC_BASE_URL` con l'URL production (es: `https://paga-ora.vercel.app`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Configura il webhook Stripe:
+   - Vai su https://dashboard.stripe.com/webhooks
+   - Aggiungi endpoint: `https://your-domain.vercel.app/api/webhook`
+   - Seleziona evento: `checkout.session.completed`
+   - Copia il webhook secret e aggiornalo su Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Testing Webhook in Locale
 
-## Deploy on Vercel
+Per testare i webhook Stripe in locale, usa Stripe CLI:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Installa Stripe CLI
+brew install stripe/stripe-cli/stripe
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Login
+stripe login
+
+# Forward webhook a localhost
+stripe listen --forward-to localhost:3000/api/webhook
+```
+
+## Stack Tecnologico
+
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS
+- **Pagamenti**: Stripe
+- **Fatturazione**: Fatture in Cloud API
+- **Email**: Nodemailer (Gmail)
+- **PDF**: pdf-lib
+
+## Flusso di Pagamento
+
+1. Cliente compila form con importo, causale e dati anagrafici
+2. Viene creata una sessione Stripe Checkout
+3. Cliente effettua pagamento su Stripe
+4. Webhook Stripe riceve conferma pagamento
+5. Sistema genera:
+   - PDF modulo privacy
+   - Email conferma al cliente
+   - Email notifica al centro con privacy allegata
+   - Fattura su Fatture in Cloud
+6. Cliente reindirizzato a pagina successo
+
+## Note Importanti
+
+- Le fatture includono automaticamente la marca da bollo (€2,00) per importi superiori a €77,47
+- I dati sensibili sono trattati secondo GDPR
+- Il sistema NON salva i dati su database (stateless)
+- Tutti i dati sono trasmessi via metadata Stripe e poi scartati dopo l'elaborazione
+
+## Supporto
+
+Per problemi o domande:
+- Email: centrimanna2@gmail.com
+- Tel: 06 841 5269
