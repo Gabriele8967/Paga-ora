@@ -40,6 +40,23 @@ export async function POST(request: NextRequest) {
       documentExpiry,
       documentFrontData,
       documentBackData,
+      // Dati partner
+      includePartner,
+      partnerName,
+      partnerEmail,
+      partnerPhone,
+      partnerFiscalCode,
+      partnerBirthDate,
+      partnerLuogoNascita,
+      partnerIndirizzo,
+      partnerCap,
+      partnerCitta,
+      partnerProvincia,
+      partnerProfession,
+      partnerDocumentNumber,
+      partnerDocumentExpiry,
+      partnerDocumentFrontData,
+      partnerDocumentBackData,
     } = body;
 
     if (!amount || !serviceName || !name || !email || !phone || !fiscalCode) {
@@ -126,21 +143,45 @@ export async function POST(request: NextRequest) {
     // Se ci sono documenti, salviamoli temporaneamente in Vercel KV
     if (documentFrontData && documentBackData && !hasCompiledPrivacy) {
       try {
-        await kv.set(`docs:${session.id}`, {
+        const docsData: Record<string, unknown> = {
           documentFrontData,
           documentBackData,
           profession,
           documentNumber,
           documentExpiry,
+          includePartner: includePartner || false,
           timestamp: Date.now(),
-        }, {
+        };
+
+        // Aggiungi dati partner se presente
+        if (includePartner && partnerDocumentFrontData && partnerDocumentBackData) {
+          docsData.partnerName = partnerName;
+          docsData.partnerEmail = partnerEmail;
+          docsData.partnerPhone = partnerPhone;
+          docsData.partnerFiscalCode = partnerFiscalCode;
+          docsData.partnerBirthDate = partnerBirthDate;
+          docsData.partnerLuogoNascita = partnerLuogoNascita;
+          docsData.partnerIndirizzo = partnerIndirizzo;
+          docsData.partnerCap = partnerCap;
+          docsData.partnerCitta = partnerCitta;
+          docsData.partnerProvincia = partnerProvincia;
+          docsData.partnerProfession = partnerProfession;
+          docsData.partnerDocumentNumber = partnerDocumentNumber;
+          docsData.partnerDocumentExpiry = partnerDocumentExpiry;
+          docsData.partnerDocumentFrontData = partnerDocumentFrontData;
+          docsData.partnerDocumentBackData = partnerDocumentBackData;
+        }
+
+        await kv.set(`docs:${session.id}`, docsData, {
           ex: 3600, // Scade dopo 1 ora
         });
-        console.log(`📎 Documenti salvati in KV per sessione ${session.id} (scadenza: 1h)`);
+
+        const partnerMsg = includePartner ? ' + documenti partner' : '';
+        console.log(`📎 Documenti salvati in KV per sessione ${session.id}${partnerMsg} (scadenza: 1h)`);
       } catch (error) {
         console.error('❌ Errore salvataggio documenti in KV:', error);
         // Non bloccare il flusso se KV non è configurato
-        console.warn('⚠️ Continuando senza documenti - configura VERCEL KV per abilitare upload documenti');
+        console.warn('⚠️ Continuando senza documenti - configura REDIS per abilitare upload documenti');
       }
     }
 

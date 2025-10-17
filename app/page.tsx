@@ -46,6 +46,24 @@ export default function HomePage() {
     documentFront: null as File | null,
     documentBack: null as File | null,
 
+    // Dati partner (opzionali)
+    includePartner: false,
+    partnerName: '',
+    partnerEmail: '',
+    partnerPhone: '',
+    partnerFiscalCode: '',
+    partnerBirthDate: '',
+    partnerLuogoNascita: '',
+    partnerIndirizzo: '',
+    partnerCap: '',
+    partnerCitta: '',
+    partnerProvincia: '',
+    partnerProfession: '',
+    partnerDocumentNumber: '',
+    partnerDocumentExpiry: '',
+    partnerDocumentFront: null as File | null,
+    partnerDocumentBack: null as File | null,
+
     // Consensi GDPR
     gdprConsent: false,
     privacyConsent: false,
@@ -101,9 +119,11 @@ export default function HomePage() {
       // Prepara documenti se privacy non compilata
       let documentFrontData = null;
       let documentBackData = null;
+      let partnerDocumentFrontData = null;
+      let partnerDocumentBackData = null;
 
       if (!formData.hasCompiledPrivacy) {
-        // Valida campi obbligatori
+        // Valida campi obbligatori paziente principale
         if (!formData.profession || !formData.documentNumber || !formData.documentExpiry) {
           throw new Error('Compila tutti i campi obbligatori per il modulo privacy');
         }
@@ -112,17 +132,42 @@ export default function HomePage() {
           throw new Error('Carica entrambi i lati del documento di identità');
         }
 
+        // Valida campi partner se incluso
+        if (formData.includePartner) {
+          if (!formData.partnerName || !formData.partnerFiscalCode || !formData.partnerBirthDate ||
+              !formData.partnerLuogoNascita || !formData.partnerProfession ||
+              !formData.partnerDocumentNumber || !formData.partnerDocumentExpiry) {
+            throw new Error('Compila tutti i campi obbligatori del partner');
+          }
+
+          if (!formData.partnerDocumentFront || !formData.partnerDocumentBack) {
+            throw new Error('Carica entrambi i lati del documento di identità del partner');
+          }
+        }
+
         // Comprimi e prepara documenti
         setError('Preparazione documenti in corso...');
 
         try {
+          // Documenti paziente principale
           const frontResult = await prepareFileForUpload(formData.documentFront, 1.5);
           const backResult = await prepareFileForUpload(formData.documentBack, 1.5);
 
           documentFrontData = frontResult.data;
           documentBackData = backResult.data;
 
-          console.log(`Documenti preparati: Fronte ${frontResult.compressed ? 'compresso' : 'originale'} (${frontResult.size.toFixed(2)}MB), Retro ${backResult.compressed ? 'compresso' : 'originale'} (${backResult.size.toFixed(2)}MB)`);
+          console.log(`Documenti paziente: Fronte ${frontResult.compressed ? 'compresso' : 'originale'} (${frontResult.size.toFixed(2)}MB), Retro ${backResult.compressed ? 'compresso' : 'originale'} (${backResult.size.toFixed(2)}MB)`);
+
+          // Documenti partner se incluso
+          if (formData.includePartner && formData.partnerDocumentFront && formData.partnerDocumentBack) {
+            const partnerFrontResult = await prepareFileForUpload(formData.partnerDocumentFront, 1.5);
+            const partnerBackResult = await prepareFileForUpload(formData.partnerDocumentBack, 1.5);
+
+            partnerDocumentFrontData = partnerFrontResult.data;
+            partnerDocumentBackData = partnerBackResult.data;
+
+            console.log(`Documenti partner: Fronte ${partnerFrontResult.compressed ? 'compresso' : 'originale'} (${partnerFrontResult.size.toFixed(2)}MB), Retro ${partnerBackResult.compressed ? 'compresso' : 'originale'} (${partnerBackResult.size.toFixed(2)}MB)`);
+          }
         } catch (compressionError) {
           throw new Error(`Errore nella preparazione dei documenti: ${compressionError instanceof Error ? compressionError.message : 'Errore sconosciuto'}`);
         }
@@ -142,6 +187,8 @@ export default function HomePage() {
             generatePrivacy,
             documentFrontData,
             documentBackData,
+            partnerDocumentFrontData,
+            partnerDocumentBackData,
           }),
         });
 
@@ -166,6 +213,8 @@ export default function HomePage() {
             generatePrivacy,
             documentFrontData,
             documentBackData,
+            partnerDocumentFrontData,
+            partnerDocumentBackData,
           }),
         });
 
@@ -676,6 +725,237 @@ export default function HomePage() {
                 )}
               </div>
             </div>
+
+            {/* Sezione Partner */}
+            {!formData.hasCompiledPrivacy && (
+              <div className="space-y-6 pb-8 border-b border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-pink-100 text-pink-600">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Dati Partner</h3>
+                    <p className="text-sm text-gray-500">Se stai facendo la procedura con il tuo partner</p>
+                  </div>
+                </div>
+
+                <div className="bg-pink-50 border border-pink-200 rounded-xl p-5">
+                  <div className="flex items-start space-x-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="includePartner"
+                      name="includePartner"
+                      checked={formData.includePartner}
+                      onChange={handleChange}
+                      className="mt-1 h-5 w-5 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                    />
+                    <label htmlFor="includePartner" className="text-sm text-pink-900 cursor-pointer">
+                      <strong>✅ Includi dati del partner nel modulo privacy</strong>
+                      <p className="text-xs text-pink-700 mt-1">Spunta se stai effettuando la procedura PMA insieme al tuo partner</p>
+                    </label>
+                  </div>
+
+                  {formData.includePartner && (
+                    <div className="bg-white rounded-lg p-4 border border-pink-300">
+                      <p className="text-sm text-pink-900 mb-4">
+                        <strong>Dati anagrafici partner</strong>
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <Label htmlFor="partnerName">Nome e Cognome Partner *</Label>
+                          <Input
+                            id="partnerName"
+                            name="partnerName"
+                            placeholder="Es: Mario Rossi"
+                            value={formData.partnerName}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerEmail">Email Partner</Label>
+                          <Input
+                            id="partnerEmail"
+                            name="partnerEmail"
+                            type="email"
+                            placeholder="partner@email.com"
+                            value={formData.partnerEmail}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerPhone">Telefono Partner</Label>
+                          <Input
+                            id="partnerPhone"
+                            name="partnerPhone"
+                            type="tel"
+                            placeholder="+39 333 1234567"
+                            value={formData.partnerPhone}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerFiscalCode">Codice Fiscale Partner *</Label>
+                          <Input
+                            id="partnerFiscalCode"
+                            name="partnerFiscalCode"
+                            placeholder="RSSMRA80A01H501U"
+                            value={formData.partnerFiscalCode}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerBirthDate">Data di Nascita Partner *</Label>
+                          <Input
+                            id="partnerBirthDate"
+                            name="partnerBirthDate"
+                            type="date"
+                            value={formData.partnerBirthDate}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label htmlFor="partnerLuogoNascita">Luogo di Nascita Partner *</Label>
+                          <Input
+                            id="partnerLuogoNascita"
+                            name="partnerLuogoNascita"
+                            placeholder="Es: Roma"
+                            value={formData.partnerLuogoNascita}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label htmlFor="partnerIndirizzo">Indirizzo Partner</Label>
+                          <Input
+                            id="partnerIndirizzo"
+                            name="partnerIndirizzo"
+                            placeholder="Es: Via Roma, 10"
+                            value={formData.partnerIndirizzo}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerCitta">Città Partner</Label>
+                          <Input
+                            id="partnerCitta"
+                            name="partnerCitta"
+                            placeholder="Es: Roma"
+                            value={formData.partnerCitta}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerProvincia">Provincia Partner</Label>
+                          <Input
+                            id="partnerProvincia"
+                            name="partnerProvincia"
+                            placeholder="Es: RM"
+                            maxLength={2}
+                            value={formData.partnerProvincia}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerCap">CAP Partner</Label>
+                          <Input
+                            id="partnerCap"
+                            name="partnerCap"
+                            placeholder="00100"
+                            value={formData.partnerCap}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label htmlFor="partnerProfession">Professione Partner *</Label>
+                          <Input
+                            id="partnerProfession"
+                            name="partnerProfession"
+                            placeholder="Es: Ingegnere"
+                            value={formData.partnerProfession}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerDocumentNumber">Numero Documento Partner *</Label>
+                          <Input
+                            id="partnerDocumentNumber"
+                            name="partnerDocumentNumber"
+                            placeholder="Es: AA1234567"
+                            value={formData.partnerDocumentNumber}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerDocumentExpiry">Scadenza Documento Partner *</Label>
+                          <Input
+                            id="partnerDocumentExpiry"
+                            name="partnerDocumentExpiry"
+                            type="date"
+                            value={formData.partnerDocumentExpiry}
+                            onChange={handleChange}
+                            required={formData.includePartner}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerDocumentFront">Documento Partner - Fronte *</Label>
+                          <Input
+                            id="partnerDocumentFront"
+                            name="partnerDocumentFront"
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setFormData(prev => ({ ...prev, partnerDocumentFront: file }));
+                              }
+                            }}
+                            required={formData.includePartner}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Max 4MB</p>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="partnerDocumentBack">Documento Partner - Retro *</Label>
+                          <Input
+                            id="partnerDocumentBack"
+                            name="partnerDocumentBack"
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setFormData(prev => ({ ...prev, partnerDocumentBack: file }));
+                              }
+                            }}
+                            required={formData.includePartner}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Max 4MB</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Privacy e Submit */}
             <div className="space-y-5 pt-2">

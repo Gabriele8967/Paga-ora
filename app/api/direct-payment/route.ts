@@ -31,6 +31,23 @@ export async function POST(request: NextRequest) {
       documentExpiry,
       documentFrontData,
       documentBackData,
+      // Dati partner
+      includePartner,
+      partnerName,
+      partnerEmail,
+      partnerPhone,
+      partnerFiscalCode,
+      partnerBirthDate,
+      partnerLuogoNascita,
+      partnerIndirizzo,
+      partnerCap,
+      partnerCitta,
+      partnerProvincia,
+      partnerProfession,
+      partnerDocumentNumber,
+      partnerDocumentExpiry,
+      partnerDocumentFrontData,
+      partnerDocumentBackData,
     } = body;
 
     if (!amount || !serviceName || !name || !email || !phone || !fiscalCode || !paymentMethod) {
@@ -75,7 +92,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Prepara allegati documenti se presenti
+    // 2. Prepara allegati documenti paziente principale se presenti
     if (!hasCompiledPrivacy && documentFrontData && documentBackData) {
       try {
         // Converti base64 in buffer
@@ -86,10 +103,28 @@ export async function POST(request: NextRequest) {
           { filename: 'documento_identita_fronte.jpg', content: frontBuffer },
           { filename: 'documento_identita_retro.jpg', content: backBuffer }
         );
-        console.log('✅ Documenti identità preparati per invio');
+        console.log('✅ Documenti identità paziente preparati per invio');
       } catch (error) {
-        console.error('❌ Errore preparazione documenti:', error);
+        console.error('❌ Errore preparazione documenti paziente:', error);
         // Continua senza documenti
+      }
+    }
+
+    // 3. Prepara allegati documenti partner se presenti
+    if (includePartner && !hasCompiledPrivacy && partnerDocumentFrontData && partnerDocumentBackData) {
+      try {
+        // Converti base64 in buffer
+        const partnerFrontBuffer = Buffer.from(partnerDocumentFrontData.split(',')[1] || partnerDocumentFrontData, 'base64');
+        const partnerBackBuffer = Buffer.from(partnerDocumentBackData.split(',')[1] || partnerDocumentBackData, 'base64');
+
+        documentsAttachments.push(
+          { filename: 'documento_identita_partner_fronte.jpg', content: partnerFrontBuffer },
+          { filename: 'documento_identita_partner_retro.jpg', content: partnerBackBuffer }
+        );
+        console.log('✅ Documenti identità partner preparati per invio');
+      } catch (error) {
+        console.error('❌ Errore preparazione documenti partner:', error);
+        // Continua senza documenti partner
       }
     }
 
