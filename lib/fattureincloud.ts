@@ -364,13 +364,12 @@ async function getOrCreateClient(companyId: number, patient: PatientData): Promi
   }
 }
 
-export type PaymentMethod = 'stripe' | 'bonifico' | 'bonifico_istantaneo' | 'contanti' | 'pos' | 'altro';
+export type PaymentMethod = 'stripe' | 'bonifico_istantaneo' | 'contanti' | 'pos' | 'altro';
 
 // Mapping metodi di pagamento per Fatture in Cloud (codici FatturaPA)
 const PAYMENT_METHOD_CODES: { [key in PaymentMethod]: string } = {
   stripe: 'MP08',      // Carta di credito/debito
-  bonifico: 'MP05',    // Bonifico bancario
-  bonifico_istantaneo: 'MP05', // Bonifico istantaneo (stesso codice del bonifico)
+  bonifico_istantaneo: 'MP05', // Bonifico istantaneo
   contanti: 'MP01',    // Contanti
   pos: 'MP08',         // POS (carta)
   altro: 'MP05',       // Altro (default bonifico)
@@ -378,7 +377,6 @@ const PAYMENT_METHOD_CODES: { [key in PaymentMethod]: string } = {
 
 const PAYMENT_METHOD_NAMES: { [key in PaymentMethod]: string } = {
   stripe: 'Stripe (Carta)',
-  bonifico: 'Bonifico Bancario',
   bonifico_istantaneo: 'Bonifico Istantaneo',
   contanti: 'Contanti',
   pos: 'POS',

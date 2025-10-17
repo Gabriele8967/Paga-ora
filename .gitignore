@@ -32,6 +32,27 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# Sensitive configuration files
+config.json
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Production environment files
+.env.production
+.env.staging
+
+# Local development files
+.env.local
+.env.development
+
+# Backup files
+*.backup
+*.bak
 
 # vercel
 .vercel

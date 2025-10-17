@@ -108,79 +108,51 @@ function SuccessPageContent() {
 
           {/* Content */}
           <div className="p-6 sm:p-8 space-y-6">
-            {/* Bonifico Istantaneo Success */}
+            {/* Bonifico Istantaneo Instructions */}
             {paymentMethod === 'bonifico_istantaneo' && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 shadow-lg">
-                <h3 className="font-bold text-green-900 mb-4 flex items-center text-lg">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-6 shadow-lg">
+                <h3 className="font-bold text-blue-900 mb-4 flex items-center text-lg">
                   <CheckCircle2 className="w-6 h-6 mr-2" />
-                  Bonifico Istantaneo Confermato
+                  Istruzioni per Bonifico Istantaneo
                 </h3>
-                <p className="text-green-800 mb-4 text-sm">
-                  Il suo bonifico istantaneo è stato ricevuto e la fattura è stata generata automaticamente.
+                <p className="text-blue-800 mb-4 text-sm">
+                  Per completare il pagamento, effettua un bonifico istantaneo e invia la ricevuta di pagamento.
                 </p>
-                <div className="bg-white border border-green-200 rounded-lg p-4 space-y-3">
+                <div className="bg-white border border-blue-200 rounded-lg p-4 space-y-4">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Importo pagato</p>
+                    <p className="text-xs text-gray-500 mb-1">Importo da pagare</p>
                     <p className="font-bold text-xl text-gray-900">€{amount || '0.00'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Servizio</p>
                     <p className="font-medium text-gray-900">{name}</p>
                   </div>
-                  <div className="pt-2 border-t border-green-200">
-                    <p className="text-sm text-green-700 font-medium">
-                      ✅ Fattura inviata via email
+                  
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-amber-900 mb-2 flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Passi da seguire:
+                    </h4>
+                    <ol className="text-sm text-amber-800 space-y-2 list-decimal list-inside">
+                      <li>Effettua il bonifico istantaneo per l'importo indicato</li>
+                      <li>Salva la ricevuta di pagamento</li>
+                      <li>Invia la ricevuta via email a: <strong>centrimanna2@gmail.com</strong></li>
+                      <li>Riceverai la fattura via email dopo la conferma</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm text-green-800">
+                      <strong>📧 Email:</strong> centrimanna2@gmail.com<br/>
+                      <strong>📋 Oggetto:</strong> Ricevuta bonifico istantaneo - {name}
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Bonifico Instructions */}
-            {paymentMethod === 'bonifico' && (
-              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-6 shadow-lg">
-                <h3 className="font-bold text-amber-900 mb-4 flex items-center text-lg">
-                  <Landmark className="w-6 h-6 mr-2" />
-                  Coordinate Bancarie per Bonifico
-                </h3>
-                <p className="text-amber-800 mb-4 text-sm">
-                  Effettua il bonifico utilizzando i seguenti dati. La fattura sarà emessa al ricevimento del pagamento.
-                </p>
-                <div className="bg-white border border-amber-200 rounded-lg p-4 space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Intestatario</p>
-                    <p className="font-semibold text-gray-900">JUNIOR S.R.L.</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">IBAN</p>
-                    <div className="flex items-center justify-between">
-                      <code className="font-mono text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded">
-                        IT60X0542404294000000123456
-                      </code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copyToClipboard('IT60X0542404294000000123456')}
-                        className="ml-2"
-                      >
-                        {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Importo</p>
-                    <p className="font-bold text-xl text-gray-900">€{amount || '0.00'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Causale</p>
-                    <p className="font-medium text-gray-900">Pagamento servizio - {name}</p>
-                  </div>
-                </div>
-                <p className="text-xs text-amber-700 mt-4">
-                  ⚠️ Ricordati di inserire la causale indicata per velocizzare l&apos;elaborazione del pagamento
-                </p>
-              </div>
-            )}
 
             {/* Next Steps */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
@@ -203,13 +175,12 @@ function SuccessPageContent() {
                   </div>
                   <p className="ml-3 text-blue-800">
                     La <strong>fattura fiscale</strong> sarà generata automaticamente{
-                      paymentMethod === 'bonifico' ? ' al ricevimento del bonifico' : 
-                      paymentMethod === 'bonifico_istantaneo' ? ' e inviata via email' :
+                      paymentMethod === 'bonifico_istantaneo' ? ' dopo l\'invio della ricevuta di pagamento' :
                       ' e inviata via email'
                     }
                   </p>
                 </li>
-                {paymentMethod !== 'bonifico' && paymentMethod !== 'bonifico_istantaneo' && (
+                {paymentMethod !== 'bonifico_istantaneo' && (
                   <li className="flex items-start">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold mt-0.5">
                       3

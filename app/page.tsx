@@ -23,7 +23,7 @@ export default function HomePage() {
     amount: '',
     serviceName: '',
     serviceDescription: '',
-    paymentMethod: 'stripe' as 'stripe' | 'bonifico' | 'bonifico_istantaneo' | 'contanti' | 'pos' | 'altro',
+    paymentMethod: 'stripe' as 'stripe' | 'bonifico_istantaneo' | 'contanti' | 'pos' | 'altro',
 
     // Dati anagrafici
     name: '',
@@ -113,7 +113,7 @@ export default function HomePage() {
           window.location.href = data.url;
         }
       } else {
-        // Pagamento non-Stripe (bonifico, bonifico_istantaneo, contanti, pos, altro)
+        // Pagamento non-Stripe (bonifico_istantaneo, contanti, pos, altro)
         const response = await fetch('/api/direct-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -288,20 +288,6 @@ export default function HomePage() {
                       </span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'bonifico' }))}
-                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
-                        formData.paymentMethod === 'bonifico'
-                          ? 'border-blue-600 bg-blue-50 shadow-md'
-                          : 'border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50'
-                      }`}
-                    >
-                      <Landmark className={`w-6 h-6 mb-2 ${formData.paymentMethod === 'bonifico' ? 'text-blue-600' : 'text-gray-600'}`} />
-                      <span className={`text-sm font-medium ${formData.paymentMethod === 'bonifico' ? 'text-blue-900' : 'text-gray-700'}`}>
-                        Bonifico
-                      </span>
-                    </button>
 
                     <button
                       type="button"
@@ -365,8 +351,7 @@ export default function HomePage() {
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
                     {formData.paymentMethod === 'stripe' && 'Pagamento online immediato con carta di credito/debito'}
-                    {formData.paymentMethod === 'bonifico' && 'Riceverai le coordinate bancarie per effettuare il bonifico'}
-                    {formData.paymentMethod === 'bonifico_istantaneo' && 'Hai già effettuato il bonifico istantaneo - riceverai la fattura via email'}
+                    {formData.paymentMethod === 'bonifico_istantaneo' && 'Effettua il bonifico istantaneo e invia la ricevuta a centrimanna2@gmail.com per confermare il pagamento'}
                     {formData.paymentMethod === 'contanti' && 'Pagamento in contanti già effettuato in sede'}
                     {formData.paymentMethod === 'pos' && 'Pagamento con POS già effettuato in sede'}
                     {formData.paymentMethod === 'altro' && 'Altro metodo di pagamento'}
