@@ -1,0 +1,141 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Test environment variables
+      run: npm run test:env
+      env:
+        # Test con variabili di test
+        STRIPE_PUBLIC_KEY: pk_test_123456789
+        STRIPE_SECRET_KEY: sk_test_123456789
+        STRIPE_WEBHOOK_SECRET: whsec_123456789
+        FATTUREINCLOUD_ACCESS_TOKEN: test_token
+        FATTUREINCLOUD_COMPANY_ID: 1234567
+        FATTUREINCLOUD_PAYMENT_ACCOUNT_ID: 1234567
+        FATTUREINCLOUD_EXEMPT_VAT_ID: 6
+        GMAIL_USER: test@example.com
+        GMAIL_APP_PASSWORD: test_password
+        COMPANY_NAME: Test Company
+        COMPANY_LEGAL_NAME: Test Legal Name
+        COMPANY_VAT_NUMBER: 12345678901
+        COMPANY_PEC: test@pec.it
+        COMPANY_PHONE: 1234567890
+        COMPANY_EMAIL: test@example.com
+        COMPANY_SUPPORT_EMAIL: support@example.com
+        COMPANY_LEGAL_ADDRESS_STREET: Test Street
+        COMPANY_LEGAL_ADDRESS_CITY: Test City
+        COMPANY_LEGAL_ADDRESS_PROVINCE: TC
+        COMPANY_LEGAL_ADDRESS_POSTAL_CODE: 12345
+        COMPANY_LEGAL_ADDRESS_COUNTRY: Italia
+        COMPANY_OPERATIONAL_ADDRESS_STREET: Test Op Street
+        COMPANY_OPERATIONAL_ADDRESS_CITY: Test Op City
+        COMPANY_OPERATIONAL_ADDRESS_PROVINCE: TC
+        COMPANY_OPERATIONAL_ADDRESS_POSTAL_CODE: 12345
+        COMPANY_OPERATIONAL_ADDRESS_COUNTRY: Italia
+        NEXT_PUBLIC_BASE_URL: http://localhost:3000
+        NODE_ENV: test
+        LOG_LEVEL: debug
+    
+    - name: Build project
+      run: npm run build
+      env:
+        STRIPE_PUBLIC_KEY: pk_test_123456789
+        STRIPE_SECRET_KEY: sk_test_123456789
+        STRIPE_WEBHOOK_SECRET: whsec_123456789
+        FATTUREINCLOUD_ACCESS_TOKEN: test_token
+        FATTUREINCLOUD_COMPANY_ID: 1234567
+        FATTUREINCLOUD_PAYMENT_ACCOUNT_ID: 1234567
+        FATTUREINCLOUD_EXEMPT_VAT_ID: 6
+        GMAIL_USER: test@example.com
+        GMAIL_APP_PASSWORD: test_password
+        COMPANY_NAME: Test Company
+        COMPANY_LEGAL_NAME: Test Legal Name
+        COMPANY_VAT_NUMBER: 12345678901
+        COMPANY_PEC: test@pec.it
+        COMPANY_PHONE: 1234567890
+        COMPANY_EMAIL: test@example.com
+        COMPANY_SUPPORT_EMAIL: support@example.com
+        COMPANY_LEGAL_ADDRESS_STREET: Test Street
+        COMPANY_LEGAL_ADDRESS_CITY: Test City
+        COMPANY_LEGAL_ADDRESS_PROVINCE: TC
+        COMPANY_LEGAL_ADDRESS_POSTAL_CODE: 12345
+        COMPANY_LEGAL_ADDRESS_COUNTRY: Italia
+        COMPANY_OPERATIONAL_ADDRESS_STREET: Test Op Street
+        COMPANY_OPERATIONAL_ADDRESS_CITY: Test Op City
+        COMPANY_OPERATIONAL_ADDRESS_PROVINCE: TC
+        COMPANY_OPERATIONAL_ADDRESS_POSTAL_CODE: 12345
+        COMPANY_OPERATIONAL_ADDRESS_COUNTRY: Italia
+        NEXT_PUBLIC_BASE_URL: http://localhost:3000
+        NODE_ENV: test
+        LOG_LEVEL: debug
+
+  production-test:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Test production environment
+      run: npm run test:production
+      env:
+        # Usa le variabili d'ambiente reali per test di produzione
+        STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        FATTUREINCLOUD_ACCESS_TOKEN: ${{ secrets.FATTUREINCLOUD_ACCESS_TOKEN }}
+        FATTUREINCLOUD_COMPANY_ID: ${{ secrets.FATTUREINCLOUD_COMPANY_ID }}
+        FATTUREINCLOUD_PAYMENT_ACCOUNT_ID: ${{ secrets.FATTUREINCLOUD_PAYMENT_ACCOUNT_ID }}
+        FATTUREINCLOUD_EXEMPT_VAT_ID: ${{ secrets.FATTUREINCLOUD_EXEMPT_VAT_ID }}
+        GMAIL_USER: ${{ secrets.GMAIL_USER }}
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        COMPANY_NAME: ${{ secrets.COMPANY_NAME }}
+        COMPANY_LEGAL_NAME: ${{ secrets.COMPANY_LEGAL_NAME }}
+        COMPANY_VAT_NUMBER: ${{ secrets.COMPANY_VAT_NUMBER }}
+        COMPANY_PEC: ${{ secrets.COMPANY_PEC }}
+        COMPANY_PHONE: ${{ secrets.COMPANY_PHONE }}
+        COMPANY_EMAIL: ${{ secrets.COMPANY_EMAIL }}
+        COMPANY_SUPPORT_EMAIL: ${{ secrets.COMPANY_SUPPORT_EMAIL }}
+        COMPANY_LEGAL_ADDRESS_STREET: ${{ secrets.COMPANY_LEGAL_ADDRESS_STREET }}
+        COMPANY_LEGAL_ADDRESS_CITY: ${{ secrets.COMPANY_LEGAL_ADDRESS_CITY }}
+        COMPANY_LEGAL_ADDRESS_PROVINCE: ${{ secrets.COMPANY_LEGAL_ADDRESS_PROVINCE }}
+        COMPANY_LEGAL_ADDRESS_POSTAL_CODE: ${{ secrets.COMPANY_LEGAL_ADDRESS_POSTAL_CODE }}
+        COMPANY_LEGAL_ADDRESS_COUNTRY: ${{ secrets.COMPANY_LEGAL_ADDRESS_COUNTRY }}
+        COMPANY_OPERATIONAL_ADDRESS_STREET: ${{ secrets.COMPANY_OPERATIONAL_ADDRESS_STREET }}
+        COMPANY_OPERATIONAL_ADDRESS_CITY: ${{ secrets.COMPANY_OPERATIONAL_ADDRESS_CITY }}
+        COMPANY_OPERATIONAL_ADDRESS_PROVINCE: ${{ secrets.COMPANY_OPERATIONAL_ADDRESS_PROVINCE }}
+        COMPANY_OPERATIONAL_ADDRESS_POSTAL_CODE: ${{ secrets.COMPANY_OPERATIONAL_ADDRESS_POSTAL_CODE }}
+        COMPANY_OPERATIONAL_ADDRESS_COUNTRY: ${{ secrets.COMPANY_OPERATIONAL_ADDRESS_COUNTRY }}
+        NEXT_PUBLIC_BASE_URL: https://paga-ora.vercel.app
+        NODE_ENV: production
+        LOG_LEVEL: info
