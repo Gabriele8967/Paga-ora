@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client';
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import { CreditCard, User, MapPin, Shield, CheckCircle2, Mail, Phone, Landmark, 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep] = useState(1);
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
   const [generatePrivacy, setGeneratePrivacy] = useState(true);
 
@@ -22,7 +23,7 @@ export default function HomePage() {
     amount: '',
     serviceName: '',
     serviceDescription: '',
-    paymentMethod: 'stripe' as 'stripe' | 'bonifico' | 'contanti' | 'pos' | 'altro',
+    paymentMethod: 'stripe' as 'stripe' | 'bonifico' | 'bonifico_istantaneo' | 'contanti' | 'pos' | 'altro',
 
     // Dati anagrafici
     name: '',
@@ -35,18 +36,29 @@ export default function HomePage() {
     cap: '',
     citta: '',
     provincia: '',
+
+    // Consensi GDPR
+    gdprConsent: false,
+    privacyConsent: false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validazione consensi GDPR obbligatori
+    if (!formData.gdprConsent || !formData.privacyConsent) {
+      setError('Devi accettare entrambi i consensi per la privacy per procedere');
+      return;
+    }
+
     setShowPrivacyPopup(true);
   };
 
@@ -101,13 +113,14 @@ export default function HomePage() {
           window.location.href = data.url;
         }
       } else {
-        // Pagamento non-Stripe (bonifico, contanti, pos, altro)
+        // Pagamento non-Stripe (bonifico, bonifico_istantaneo, contanti, pos, altro)
         const response = await fetch('/api/direct-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...formData,
             amount,
+            generatePrivacy,
           }),
         });
 
@@ -292,6 +305,21 @@ export default function HomePage() {
 
                     <button
                       type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'bonifico_istantaneo' }))}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                        formData.paymentMethod === 'bonifico_istantaneo'
+                          ? 'border-green-600 bg-green-50 shadow-md'
+                          : 'border-gray-300 bg-white hover:border-green-400 hover:bg-green-50'
+                      }`}
+                    >
+                      <CheckCircle2 className={`w-6 h-6 mb-2 ${formData.paymentMethod === 'bonifico_istantaneo' ? 'text-green-600' : 'text-gray-600'}`} />
+                      <span className={`text-sm font-medium ${formData.paymentMethod === 'bonifico_istantaneo' ? 'text-green-900' : 'text-gray-700'}`}>
+                        Bonifico Istantaneo
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'contanti' }))}
                       className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
                         formData.paymentMethod === 'contanti'
@@ -338,6 +366,7 @@ export default function HomePage() {
                   <p className="mt-2 text-xs text-gray-500">
                     {formData.paymentMethod === 'stripe' && 'Pagamento online immediato con carta di credito/debito'}
                     {formData.paymentMethod === 'bonifico' && 'Riceverai le coordinate bancarie per effettuare il bonifico'}
+                    {formData.paymentMethod === 'bonifico_istantaneo' && 'Hai già effettuato il bonifico istantaneo - riceverai la fattura via email'}
                     {formData.paymentMethod === 'contanti' && 'Pagamento in contanti già effettuato in sede'}
                     {formData.paymentMethod === 'pos' && 'Pagamento con POS già effettuato in sede'}
                     {formData.paymentMethod === 'altro' && 'Altro metodo di pagamento'}
@@ -531,11 +560,44 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-amber-900 mb-2">Informativa Privacy & GDPR</h4>
-                    <p className="text-sm text-amber-800 leading-relaxed">
-                      Procedendo con il pagamento, acconsenti al trattamento dei tuoi dati personali
-                      secondo quanto previsto dall&apos;informativa privacy di <strong>JUNIOR S.R.L.</strong> (Centro Biofertility).
-                      Riceverai il modulo privacy compilato via email. I tuoi dati sono protetti secondo la normativa GDPR.
+                    <p className="text-sm text-amber-800 leading-relaxed mb-4">
+                      I tuoi dati personali saranno trattati esclusivamente per le finalità mediche indicate nel modulo di consenso. 
+                      Non verranno salvati sui nostri server ma solo inviati tramite email sicura al centro medico. 
+                      Hai diritto di accesso, rettifica, cancellazione e portabilità dei tuoi dati secondo il Regolamento UE 2016/679.
                     </p>
+                    
+                    {/* Checkbox GDPR obbligatorie */}
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-amber-300">
+                        <input
+                          type="checkbox"
+                          id="gdprConsent"
+                          name="gdprConsent"
+                          checked={formData.gdprConsent}
+                          onChange={handleChange}
+                          className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          required
+                        />
+                        <label htmlFor="gdprConsent" className="text-sm text-amber-900 cursor-pointer">
+                          <strong>Accetto il trattamento dei dati personali secondo l'informativa GDPR *</strong>
+                        </label>
+                      </div>
+                      
+                      <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-amber-300">
+                        <input
+                          type="checkbox"
+                          id="privacyConsent"
+                          name="privacyConsent"
+                          checked={formData.privacyConsent}
+                          onChange={handleChange}
+                          className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          required
+                        />
+                        <label htmlFor="privacyConsent" className="text-sm text-amber-900 cursor-pointer">
+                          <strong>Presto il consenso per il trattamento dei dati personali e sensibili come descritto nel modulo *</strong>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -614,32 +676,41 @@ export default function HomePage() {
 
       {showPrivacyPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Informativa Privacy</h3>
-            <p className="text-gray-600 mb-6">Hai già compilato e firmato l'informativa sulla privacy con noi in passato?</p>
-            <div className="flex justify-center space-x-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Modulo Privacy</h3>
+              <p className="text-gray-600 text-sm">
+                Hai già compilato e firmato il modulo privacy per il trattamento dei dati personali e sensibili con il Centro Biofertility?
+              </p>
+            </div>
+            
+            <div className="space-y-3 mb-6">
               <Button
                 onClick={() => {
                   setGeneratePrivacy(false);
                   proceedWithSubmission();
                 }}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-3"
               >
-                Sì, ho già firmato
+                ✅ Sì, ho già firmato il modulo privacy
               </Button>
               <Button
                 onClick={() => {
                   setGeneratePrivacy(true);
                   proceedWithSubmission();
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
               >
-                No, è la prima volta
+                📝 No, è la prima volta - Genera modulo privacy
               </Button>
             </div>
+            
             <Button
               onClick={() => setShowPrivacyPopup(false)}
-              className="mt-4 text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700"
               variant="ghost"
             >
               Annulla

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Mail, FileText, Shield, Home, Phone, MapPin, Landmark, Copy } from 'lucide-react';
+import { Home, CheckCircle2, Copy, Mail, Phone, Landmark, MapPin } from 'lucide-react';
 
 function SuccessPageContent() {
   const searchParams = useSearchParams();
@@ -108,6 +108,34 @@ function SuccessPageContent() {
 
           {/* Content */}
           <div className="p-6 sm:p-8 space-y-6">
+            {/* Bonifico Istantaneo Success */}
+            {paymentMethod === 'bonifico_istantaneo' && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 shadow-lg">
+                <h3 className="font-bold text-green-900 mb-4 flex items-center text-lg">
+                  <CheckCircle2 className="w-6 h-6 mr-2" />
+                  Bonifico Istantaneo Confermato
+                </h3>
+                <p className="text-green-800 mb-4 text-sm">
+                  Il suo bonifico istantaneo è stato ricevuto e la fattura è stata generata automaticamente.
+                </p>
+                <div className="bg-white border border-green-200 rounded-lg p-4 space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Importo pagato</p>
+                    <p className="font-bold text-xl text-gray-900">€{amount || '0.00'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Servizio</p>
+                    <p className="font-medium text-gray-900">{name}</p>
+                  </div>
+                  <div className="pt-2 border-t border-green-200">
+                    <p className="text-sm text-green-700 font-medium">
+                      ✅ Fattura inviata via email
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Bonifico Instructions */}
             {paymentMethod === 'bonifico' && (
               <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-6 shadow-lg">
@@ -174,10 +202,14 @@ function SuccessPageContent() {
                     2
                   </div>
                   <p className="ml-3 text-blue-800">
-                    La <strong>fattura fiscale</strong> sarà generata automaticamente{paymentMethod === 'bonifico' ? ' al ricevimento del bonifico' : ' e inviata via email'}
+                    La <strong>fattura fiscale</strong> sarà generata automaticamente{
+                      paymentMethod === 'bonifico' ? ' al ricevimento del bonifico' : 
+                      paymentMethod === 'bonifico_istantaneo' ? ' e inviata via email' :
+                      ' e inviata via email'
+                    }
                   </p>
                 </li>
-                {paymentMethod !== 'bonifico' && (
+                {paymentMethod !== 'bonifico' && paymentMethod !== 'bonifico_istantaneo' && (
                   <li className="flex items-start">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold mt-0.5">
                       3

@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { createAndSendInvoice } from '@/lib/fattureincloud';
 import { sendPaymentConfirmationToAdmin, sendPaymentConfirmationToClient } from '@/lib/email';
-import { generatePrivacyPdf } from '@/lib/pdf';
+import { generatePaymentPrivacyPdf } from '@/lib/pdf';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       let privacyPdf: Buffer | null = null;
       if (generatePrivacy) {
         // 1. Genera PDF privacy
-        privacyPdf = await generatePrivacyPdf({
+        const pdfUint8Array = await generatePaymentPrivacyPdf({
           name: metadata.name,
           email: metadata.email,
           phone: metadata.phone,
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
           provincia: metadata.provincia,
           ipAddress: metadata.ipAddress,
         });
+        privacyPdf = Buffer.from(pdfUint8Array);
         console.log('✅ PDF privacy generato');
       } else {
         console.log('⏩ Generazione PDF privacy saltata come richiesto.');

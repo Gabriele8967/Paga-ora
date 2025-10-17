@@ -182,16 +182,14 @@ export function validateFiscalCode(data: PersonData): ValidationResult {
     const nameParts = data.name.trim().split(/\s+/);
     if (nameParts.length >= 2) {
       const surname = nameParts[nameParts.length - 1];
-      const firstName = nameParts.slice(0, -1).join(' ');
-
       const surnameConsonants = getConsonants(surname);
       const surnameVowels = getVowels(surname);
 
       // I primi 3 caratteri del CF dovrebbero corrispondere al cognome
       const cfSurnamePart = fc.substring(0, 3);
-      let expectedSurname = (surnameConsonants + surnameVowels + 'XXX').substring(0, 3);
+      const expectedSurname = `${surnameConsonants}${surnameVowels}`.padEnd(3, 'X');
 
-      if (cfSurnamePart !== expectedSurname) {
+      if (cfSurnamePart !== expectedSurname.substring(0, 3)) {
         warnings.push(
           'Il cognome potrebbe non corrispondere al codice fiscale. Verifica che l\'ordine sia corretto (Nome Cognome)'
         );
