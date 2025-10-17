@@ -4,13 +4,18 @@ import { calculateStampDuty } from '@/lib/fattureincloud';
 
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
-  typescript: true,
-});
-
 export async function POST(request: NextRequest) {
   try {
+    // Verifica che le variabili d'ambiente siano presenti
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY non configurata');
+    }
+
+    // Inizializza Stripe all'interno della funzione
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-09-30.clover',
+      typescript: true,
+    });
     const body = await request.json();
 
     const {

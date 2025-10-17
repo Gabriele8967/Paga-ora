@@ -2,13 +2,22 @@ import nodemailer from 'nodemailer';
 import { formatInTimeZone } from 'date-fns-tz';
 import { it } from 'date-fns/locale';
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD, // Utilizza la "Password per le app" di Google
-    },
-});
+function createTransporter() {
+    const user = process.env.GMAIL_USER;
+    const pass = process.env.GMAIL_APP_PASSWORD;
+    
+    if (!user || !pass) {
+        throw new Error('GMAIL_USER e GMAIL_APP_PASSWORD devono essere configurate');
+    }
+    
+    return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user,
+            pass,
+        },
+    });
+}
 
 interface MailOptions {
     from: string;
@@ -20,6 +29,7 @@ interface MailOptions {
 
 async function sendEmail(mailOptions: MailOptions) {
     try {
+        const transporter = createTransporter();
         await transporter.sendMail(mailOptions);
         console.log(`Email inviata a: ${mailOptions.to}`);
     } catch (error) {
@@ -49,7 +59,7 @@ export async function sendPaymentConfirmationToAdmin(data: PaymentConfirmationDa
 
     // 2. Invia l'email al centro
     const adminMailOptions: MailOptions = {
-        from: `"Biofertility Booking" <${process.env.GMAIL_USER}>`,
+        from: `"Biofertility Booking" <${process.env.GMAIL_USER!}>`,
         to: 'centrimanna2@gmail.com',
         subject: `🆕 Nuovo Pagamento Ricevuto - ${data.name}`,
         html: `
@@ -95,7 +105,7 @@ export async function sendPaymentConfirmationToClient(data: PaymentConfirmationD
     const firstName = data.name.split(' ')[0];
 
     const clientMailOptions: MailOptions = {
-        from: `"Centro Biofertility" <${process.env.GMAIL_USER}>`,
+        from: `"Centro Biofertility" <${process.env.GMAIL_USER!}>`,
         to: data.email,
         subject: `✅ Pagamento Confermato - ${data.serviceName}`,
         html: `
@@ -254,7 +264,7 @@ export async function sendInvoiceToClient(data: InvoiceEmailData) {
   const total = data.amount + data.stampDuty;
 
   const invoiceMailOptions: MailOptions = {
-    from: `"Centro Biofertility" <${process.env.GMAIL_USER}>`,
+    from: `"Centro Biofertility" <${process.env.GMAIL_USER!}>`,
     to: data.email,
     subject: `📄 Fattura ${data.invoiceId} - ${data.serviceName}`,
     html: `

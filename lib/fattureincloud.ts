@@ -2,13 +2,11 @@ import axios from 'axios';
 
 /**
  * Recupera il company ID di Fatture in Cloud dalle variabili d'ambiente.
- * Se non configurato, usa il valore di default.
  */
 function getCompanyId(): number {
   const companyId = process.env.FATTUREINCLOUD_COMPANY_ID;
   if (!companyId) {
-    console.warn('FATTUREINCLOUD_COMPANY_ID non configurato, usando company ID di default');
-    return 0; // Sarà necessario configurarlo nelle variabili d'ambiente
+    throw new Error('FATTUREINCLOUD_COMPANY_ID non configurata');
   }
   return parseInt(companyId, 10);
 }
@@ -107,13 +105,7 @@ async function getPaymentAccountId(): Promise<number | null> {
 function getExemptVatId(): number {
   const exemptVatId = process.env.FATTUREINCLOUD_EXEMPT_VAT_ID;
   if (!exemptVatId) {
-    console.warn('⚠️  FATTUREINCLOUD_EXEMPT_VAT_ID non configurato!');
-    console.warn('   Per trovare l\'ID corretto:');
-    console.warn('   1. Vai su Fatture in Cloud > Impostazioni > Aliquote IVA');
-    console.warn('   2. Cerca l\'aliquota 0% per prestazioni sanitarie esenti');
-    console.warn('   3. Annota l\'ID e configuralo in .env come FATTUREINCLOUD_EXEMPT_VAT_ID');
-    console.warn('   Usando temporaneamente ID 0 (potrebbe causare errori)');
-    return 0;
+    throw new Error('FATTUREINCLOUD_EXEMPT_VAT_ID non configurata');
   }
   return parseInt(exemptVatId, 10);
 }
