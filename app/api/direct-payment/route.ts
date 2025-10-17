@@ -83,6 +83,21 @@ export async function POST(request: NextRequest) {
           profession,
           documentNumber,
           documentExpiry,
+          // Dati partner
+          includePartner,
+          partnerName,
+          partnerEmail,
+          partnerPhone,
+          partnerFiscalCode,
+          partnerBirthDate,
+          partnerLuogoNascita,
+          partnerIndirizzo,
+          partnerCap,
+          partnerCitta,
+          partnerProvincia,
+          partnerProfession,
+          partnerDocumentNumber,
+          partnerDocumentExpiry,
         });
         privacyPdf = Buffer.from(pdfUint8Array);
         console.log('✅ PDF privacy generato');

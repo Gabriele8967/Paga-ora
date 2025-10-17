@@ -131,6 +131,21 @@ export async function generatePaymentPrivacyPdf(paymentData: {
   profession?: string;
   documentNumber?: string;
   documentExpiry?: string;
+  // Dati partner
+  includePartner?: boolean;
+  partnerName?: string;
+  partnerEmail?: string;
+  partnerPhone?: string;
+  partnerFiscalCode?: string;
+  partnerBirthDate?: string;
+  partnerLuogoNascita?: string;
+  partnerIndirizzo?: string;
+  partnerCap?: string;
+  partnerCitta?: string;
+  partnerProvincia?: string;
+  partnerProfession?: string;
+  partnerDocumentNumber?: string;
+  partnerDocumentExpiry?: string;
 }): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
     let page = pdfDoc.addPage();
@@ -170,7 +185,29 @@ export async function generatePaymentPrivacyPdf(paymentData: {
         'Codice Fiscale': paymentData.fiscalCode,
         'Telefono': paymentData.phone,
         'Email': paymentData.email,
+        'Professione': paymentData.profession || 'N/D',
+        'Documento N.': paymentData.documentNumber || 'N/D',
+        'Scadenza Doc.': paymentData.documentExpiry ? new Date(paymentData.documentExpiry).toLocaleDateString('it-IT') : 'N/D',
     });
+
+    // Aggiungi dati partner se presente
+    if (paymentData.includePartner && paymentData.partnerName) {
+        y -= 10;
+        drawSection('DATI PARTNER', {
+            'Nome e Cognome': paymentData.partnerName,
+            'Data di Nascita': paymentData.partnerBirthDate ? new Date(paymentData.partnerBirthDate).toLocaleDateString('it-IT') : 'N/D',
+            'Luogo di Nascita': paymentData.partnerLuogoNascita || 'N/D',
+            'Indirizzo': paymentData.partnerIndirizzo ?
+                `${paymentData.partnerIndirizzo}, ${paymentData.partnerCitta || ''} (${paymentData.partnerProvincia || ''}) ${paymentData.partnerCap || ''}` :
+                'N/D',
+            'Codice Fiscale': paymentData.partnerFiscalCode,
+            'Telefono': paymentData.partnerPhone || 'N/D',
+            'Email': paymentData.partnerEmail || 'N/D',
+            'Professione': paymentData.partnerProfession || 'N/D',
+            'Documento N.': paymentData.partnerDocumentNumber || 'N/D',
+            'Scadenza Doc.': paymentData.partnerDocumentExpiry ? new Date(paymentData.partnerDocumentExpiry).toLocaleDateString('it-IT') : 'N/D',
+        });
+    }
 
     y -= 20;
     page.drawText('DICHIARAZIONE DI CONSENSO', { x: margin, y, font: timesRomanBoldFont, size: 12 }); y -= 15;

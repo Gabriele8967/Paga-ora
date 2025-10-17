@@ -58,12 +58,28 @@ export async function POST(request: NextRequest) {
             profession: string;
             documentNumber: string;
             documentExpiry: string;
+            includePartner?: boolean;
+            partnerName?: string;
+            partnerEmail?: string;
+            partnerPhone?: string;
+            partnerFiscalCode?: string;
+            partnerBirthDate?: string;
+            partnerLuogoNascita?: string;
+            partnerIndirizzo?: string;
+            partnerCap?: string;
+            partnerCitta?: string;
+            partnerProvincia?: string;
+            partnerProfession?: string;
+            partnerDocumentNumber?: string;
+            partnerDocumentExpiry?: string;
+            partnerDocumentFrontData?: string;
+            partnerDocumentBackData?: string;
           } | null;
 
           if (documentsData) {
             console.log(`📎 Documenti recuperati da KV per sessione ${session.id}`);
 
-            // Converti base64 in buffer
+            // Converti base64 in buffer per paziente principale
             const frontBuffer = Buffer.from(documentsData.documentFrontData.split(',')[1] || documentsData.documentFrontData, 'base64');
             const backBuffer = Buffer.from(documentsData.documentBackData.split(',')[1] || documentsData.documentBackData, 'base64');
 
@@ -71,6 +87,18 @@ export async function POST(request: NextRequest) {
               { filename: 'documento_identita_fronte.jpg', content: frontBuffer },
               { filename: 'documento_identita_retro.jpg', content: backBuffer }
             );
+
+            // Aggiungi documenti partner se presenti
+            if (documentsData.includePartner && documentsData.partnerDocumentFrontData && documentsData.partnerDocumentBackData) {
+              const partnerFrontBuffer = Buffer.from(documentsData.partnerDocumentFrontData.split(',')[1] || documentsData.partnerDocumentFrontData, 'base64');
+              const partnerBackBuffer = Buffer.from(documentsData.partnerDocumentBackData.split(',')[1] || documentsData.partnerDocumentBackData, 'base64');
+
+              documentsAttachments.push(
+                { filename: 'documento_identita_partner_fronte.jpg', content: partnerFrontBuffer },
+                { filename: 'documento_identita_partner_retro.jpg', content: partnerBackBuffer }
+              );
+              console.log(`📎 Documenti partner recuperati da KV`);
+            }
 
             // Elimina documenti da KV dopo il recupero
             await kv.del(`docs:${session.id}`);
@@ -101,9 +129,24 @@ export async function POST(request: NextRequest) {
           profession: metadata.profession || documentsData?.profession,
           documentNumber: metadata.documentNumber || documentsData?.documentNumber,
           documentExpiry: metadata.documentExpiry || documentsData?.documentExpiry,
+          // Dati partner se presenti
+          includePartner: documentsData?.includePartner,
+          partnerName: documentsData?.partnerName,
+          partnerEmail: documentsData?.partnerEmail,
+          partnerPhone: documentsData?.partnerPhone,
+          partnerFiscalCode: documentsData?.partnerFiscalCode,
+          partnerBirthDate: documentsData?.partnerBirthDate,
+          partnerLuogoNascita: documentsData?.partnerLuogoNascita,
+          partnerIndirizzo: documentsData?.partnerIndirizzo,
+          partnerCap: documentsData?.partnerCap,
+          partnerCitta: documentsData?.partnerCitta,
+          partnerProvincia: documentsData?.partnerProvincia,
+          partnerProfession: documentsData?.partnerProfession,
+          partnerDocumentNumber: documentsData?.partnerDocumentNumber,
+          partnerDocumentExpiry: documentsData?.partnerDocumentExpiry,
         });
         privacyPdf = Buffer.from(pdfUint8Array);
-        console.log('✅ PDF privacy generato');
+        console.log('✅ PDF privacy generato' + (documentsData?.includePartner ? ' (con dati partner)' : ''));
       } else {
         console.log('⏩ Generazione PDF privacy saltata come richiesto.');
       }
