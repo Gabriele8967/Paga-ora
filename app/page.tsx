@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { calculateTotalWithStampDuty } from '@/lib/fattureincloud';
 import { validateFiscalCode } from '@/lib/fiscal-code-validator';
 import { FiscalCodeInput } from '@/components/FiscalCodeInput';
+import { prepareFileForUpload } from '@/lib/image-compression';
 import { CreditCard, User, MapPin, Shield, CheckCircle2, Mail, Phone, Landmark, Banknote, Smartphone } from 'lucide-react';
 
 export default function HomePage() {
@@ -23,7 +24,7 @@ export default function HomePage() {
     amount: '',
     serviceName: '',
     serviceDescription: '',
-    paymentMethod: 'stripe' as 'stripe' | 'bonifico_istantaneo' | 'contanti' | 'pos' | 'altro',
+    paymentMethod: 'stripe' as 'stripe' | 'bonifico_istantaneo' | 'contanti' | 'altro',
 
     // Dati anagrafici
     name: '',
@@ -36,6 +37,14 @@ export default function HomePage() {
     cap: '',
     citta: '',
     provincia: '',
+
+    // Controllo privacy
+    hasCompiledPrivacy: false, // true se ha già compilato la privacy
+    profession: '',
+    documentNumber: '',
+    documentExpiry: '',
+    documentFront: null as File | null,
+    documentBack: null as File | null,
 
     // Consensi GDPR
     gdprConsent: false,
@@ -89,6 +98,38 @@ export default function HomePage() {
         console.warn('Avvisi CF:', fiscalValidation.warnings);
       }
 
+      // Prepara documenti se privacy non compilata
+      let documentFrontData = null;
+      let documentBackData = null;
+
+      if (!formData.hasCompiledPrivacy) {
+        // Valida campi obbligatori
+        if (!formData.profession || !formData.documentNumber || !formData.documentExpiry) {
+          throw new Error('Compila tutti i campi obbligatori per il modulo privacy');
+        }
+
+        if (!formData.documentFront || !formData.documentBack) {
+          throw new Error('Carica entrambi i lati del documento di identità');
+        }
+
+        // Comprimi e prepara documenti
+        setError('Preparazione documenti in corso...');
+
+        try {
+          const frontResult = await prepareFileForUpload(formData.documentFront, 1.5);
+          const backResult = await prepareFileForUpload(formData.documentBack, 1.5);
+
+          documentFrontData = frontResult.data;
+          documentBackData = backResult.data;
+
+          console.log(`Documenti preparati: Fronte ${frontResult.compressed ? 'compresso' : 'originale'} (${frontResult.size.toFixed(2)}MB), Retro ${backResult.compressed ? 'compresso' : 'originale'} (${backResult.size.toFixed(2)}MB)`);
+        } catch (compressionError) {
+          throw new Error(`Errore nella preparazione dei documenti: ${compressionError instanceof Error ? compressionError.message : 'Errore sconosciuto'}`);
+        }
+      }
+
+      setError('');
+
       // Gestione diversa in base al metodo di pagamento
       if (formData.paymentMethod === 'stripe') {
         // Pagamento con carta: redirect a Stripe Checkout
@@ -99,6 +140,8 @@ export default function HomePage() {
             ...formData,
             amount,
             generatePrivacy,
+            documentFrontData,
+            documentBackData,
           }),
         });
 
@@ -113,7 +156,7 @@ export default function HomePage() {
           window.location.href = data.url;
         }
       } else {
-        // Pagamento non-Stripe (bonifico_istantaneo, contanti, pos, altro)
+        // Pagamento non-Stripe (bonifico_istantaneo, contanti, altro)
         const response = await fetch('/api/direct-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -121,6 +164,8 @@ export default function HomePage() {
             ...formData,
             amount,
             generatePrivacy,
+            documentFrontData,
+            documentBackData,
           }),
         });
 
@@ -319,20 +364,6 @@ export default function HomePage() {
                       </span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'pos' }))}
-                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
-                        formData.paymentMethod === 'pos'
-                          ? 'border-blue-600 bg-blue-50 shadow-md'
-                          : 'border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50'
-                      }`}
-                    >
-                      <Smartphone className={`w-6 h-6 mb-2 ${formData.paymentMethod === 'pos' ? 'text-blue-600' : 'text-gray-600'}`} />
-                      <span className={`text-sm font-medium ${formData.paymentMethod === 'pos' ? 'text-blue-900' : 'text-gray-700'}`}>
-                        POS
-                      </span>
-                    </button>
 
                     <button
                       type="button"
@@ -353,7 +384,6 @@ export default function HomePage() {
                     {formData.paymentMethod === 'stripe' && 'Pagamento online immediato con carta di credito/debito'}
                     {formData.paymentMethod === 'bonifico_istantaneo' && 'Effettua il bonifico istantaneo e invia la ricevuta a centrimanna2@gmail.com per confermare il pagamento'}
                     {formData.paymentMethod === 'contanti' && 'Pagamento in contanti già effettuato in sede'}
-                    {formData.paymentMethod === 'pos' && 'Pagamento con POS già effettuato in sede'}
                     {formData.paymentMethod === 'altro' && 'Altro metodo di pagamento'}
                   </p>
                 </div>
@@ -473,7 +503,7 @@ export default function HomePage() {
             </div>
 
             {/* Sezione Indirizzo */}
-            <div className="space-y-6 pb-8">
+            <div className="space-y-6 pb-8 border-b border-gray-200">
               <div className="flex items-center space-x-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 text-purple-600">
                   <MapPin className="w-5 h-5" />
@@ -533,6 +563,117 @@ export default function HomePage() {
                     required
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Sezione Modulo Privacy */}
+            <div className="space-y-6 pb-8">
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 text-amber-600">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Modulo Privacy</h3>
+                  <p className="text-sm text-gray-500">Informazioni sul trattamento dati personali</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                <div className="flex items-start space-x-3 mb-4">
+                  <input
+                    type="checkbox"
+                    id="hasCompiledPrivacy"
+                    name="hasCompiledPrivacy"
+                    checked={formData.hasCompiledPrivacy}
+                    onChange={handleChange}
+                    className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="hasCompiledPrivacy" className="text-sm text-blue-900 cursor-pointer">
+                    <strong>Ho già compilato e firmato il modulo privacy con il Centro Biofertility</strong>
+                  </label>
+                </div>
+
+                {!formData.hasCompiledPrivacy && (
+                  <div className="bg-white rounded-lg p-4 border border-blue-300">
+                    <p className="text-sm text-blue-900 mb-4">
+                      <strong>È la prima volta?</strong> Compila i campi aggiuntivi richiesti per il modulo privacy completo.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <Label htmlFor="profession">Professione *</Label>
+                        <Input
+                          id="profession"
+                          name="profession"
+                          placeholder="Es: Medico, Ingegnere..."
+                          value={formData.profession}
+                          onChange={handleChange}
+                          required={!formData.hasCompiledPrivacy}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="documentNumber">Numero Documento Identità *</Label>
+                        <Input
+                          id="documentNumber"
+                          name="documentNumber"
+                          placeholder="Es: AA1234567"
+                          value={formData.documentNumber}
+                          onChange={handleChange}
+                          required={!formData.hasCompiledPrivacy}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="documentExpiry">Scadenza Documento *</Label>
+                        <Input
+                          id="documentExpiry"
+                          name="documentExpiry"
+                          type="date"
+                          value={formData.documentExpiry}
+                          onChange={handleChange}
+                          required={!formData.hasCompiledPrivacy}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="documentFront">Documento Identità - Fronte *</Label>
+                        <Input
+                          id="documentFront"
+                          name="documentFront"
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setFormData(prev => ({ ...prev, documentFront: file }));
+                            }
+                          }}
+                          required={!formData.hasCompiledPrivacy}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Max 4MB - Verrà compresso se necessario</p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="documentBack">Documento Identità - Retro *</Label>
+                        <Input
+                          id="documentBack"
+                          name="documentBack"
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setFormData(prev => ({ ...prev, documentBack: file }));
+                            }
+                          }}
+                          required={!formData.hasCompiledPrivacy}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Max 4MB - Verrà compresso se necessario</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -128,6 +128,9 @@ export async function generatePaymentPrivacyPdf(paymentData: {
   citta: string;
   provincia: string;
   ipAddress?: string;
+  profession?: string;
+  documentNumber?: string;
+  documentExpiry?: string;
 }): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
     let page = pdfDoc.addPage();

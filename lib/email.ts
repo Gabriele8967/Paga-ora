@@ -50,11 +50,22 @@ interface PaymentConfirmationData {
   ipAddress?: string;
 }
 
-export async function sendPaymentConfirmationToAdmin(data: PaymentConfirmationData, privacyPdf: Buffer | null) {
+export async function sendPaymentConfirmationToAdmin(
+    data: PaymentConfirmationData,
+    privacyPdf: Buffer | null,
+    documentsAttachments?: Array<{ filename: string; content: Buffer }>
+) {
     // 1. Genera il PDF della privacy
     const attachments = [];
     if (privacyPdf) {
         attachments.push({ filename: `Modulo_Privacy_${data.name.replace(/ /g, '_')}.pdf`, content: privacyPdf, contentType: 'application/pdf' });
+    }
+
+    // 2. Aggiungi documenti identità se presenti
+    if (documentsAttachments && documentsAttachments.length > 0) {
+        documentsAttachments.forEach(doc => {
+            attachments.push({ ...doc, contentType: 'image/jpeg' });
+        });
     }
 
     // 2. Invia l'email al centro
@@ -89,6 +100,7 @@ export async function sendPaymentConfirmationToAdmin(data: PaymentConfirmationDa
                     <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
                         <p style="margin: 0; color: #92400e;">
                             📎 <strong>Allegati:</strong> ${privacyPdf ? 'Modulo privacy compilato.' : 'Nessun nuovo modulo privacy compilato.'}
+                            ${documentsAttachments && documentsAttachments.length > 0 ? ` Documenti identità allegati (${documentsAttachments.length} file).` : ''}
                         </p>
                     </div>
                 </div>

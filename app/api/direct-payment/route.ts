@@ -25,6 +25,12 @@ export async function POST(request: NextRequest) {
       provincia,
       paymentMethod,
       generatePrivacy,
+      hasCompiledPrivacy,
+      profession,
+      documentNumber,
+      documentExpiry,
+      documentFrontData,
+      documentBackData,
     } = body;
 
     if (!amount || !serviceName || !name || !email || !phone || !fiscalCode || !paymentMethod) {
@@ -40,6 +46,8 @@ export async function POST(request: NextRequest) {
 
     // 1. Genera PDF privacy se richiesto
     let privacyPdf: Buffer | null = null;
+    const documentsAttachments: Array<{ filename: string; content: Buffer }> = [];
+
     if (generatePrivacy) {
       try {
         const pdfUint8Array = await generatePaymentPrivacyPdf({
@@ -54,6 +62,10 @@ export async function POST(request: NextRequest) {
           citta,
           provincia,
           ipAddress,
+          // Campi aggiuntivi per privacy completa
+          profession,
+          documentNumber,
+          documentExpiry,
         });
         privacyPdf = Buffer.from(pdfUint8Array);
         console.log('✅ PDF privacy generato');
@@ -63,7 +75,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Invia email al centro con privacy allegata (se generata)
+    // 2. Prepara allegati documenti se presenti
+    if (!hasCompiledPrivacy && documentFrontData && documentBackData) {
+      try {
+        // Converti base64 in buffer
+        const frontBuffer = Buffer.from(documentFrontData.split(',')[1] || documentFrontData, 'base64');
+        const backBuffer = Buffer.from(documentBackData.split(',')[1] || documentBackData, 'base64');
+
+        documentsAttachments.push(
+          { filename: 'documento_identita_fronte.jpg', content: frontBuffer },
+          { filename: 'documento_identita_retro.jpg', content: backBuffer }
+        );
+        console.log('✅ Documenti identità preparati per invio');
+      } catch (error) {
+        console.error('❌ Errore preparazione documenti:', error);
+        // Continua senza documenti
+      }
+    }
+
+    // 3. Invia email al centro con privacy e documenti allegati
     try {
       await sendPaymentConfirmationToAdmin(
         {
@@ -77,7 +107,8 @@ export async function POST(request: NextRequest) {
           stampDuty: 0, // Calcolato automaticamente in fattura
           ipAddress,
         },
-        privacyPdf
+        privacyPdf,
+        documentsAttachments.length > 0 ? documentsAttachments : undefined
       );
       console.log('✅ Email inviata al centro');
     } catch (error) {

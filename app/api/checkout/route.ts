@@ -33,6 +33,12 @@ export async function POST(request: NextRequest) {
       citta,
       provincia,
       generatePrivacy,
+      hasCompiledPrivacy,
+      profession,
+      documentNumber,
+      documentExpiry,
+      documentFrontData,
+      documentBackData,
     } = body;
 
     if (!amount || !serviceName || !name || !email || !phone || !fiscalCode) {
@@ -107,8 +113,24 @@ export async function POST(request: NextRequest) {
         stampDuty: stampDuty.toString(),
         ipAddress,
         generatePrivacy: generatePrivacy ? generatePrivacy.toString() : 'true',
+        hasCompiledPrivacy: hasCompiledPrivacy ? 'true' : 'false',
+        profession: profession || '',
+        documentNumber: documentNumber || '',
+        documentExpiry: documentExpiry || '',
+        // Non possiamo salvare documenti qui (troppo grandi per metadata)
+        // Li salveremo temporaneamente in un KV store o li invieremo nel webhook
       },
     });
+
+    // Se ci sono documenti, salviamoli temporaneamente usando session.id come chiave
+    if (documentFrontData && documentBackData) {
+      // Per ora, li salviamo in un file temporaneo o in un KV store
+      // In produzione, usare Redis/KV store come Vercel KV
+      console.log(`📎 Documenti ricevuti per sessione ${session.id} (non salvati nei metadata per limiti di dimensione)`);
+
+      // TODO: Implementare storage temporaneo per documenti
+      // await kv.set(`docs:${session.id}`, { documentFrontData, documentBackData }, { ex: 3600 });
+    }
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
 
