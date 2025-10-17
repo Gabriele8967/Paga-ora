@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { calculateStampDuty } from '@/lib/fattureincloud';
+import { kv } from '@vercel/kv';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,14 +123,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Se ci sono documenti, salviamoli temporaneamente usando session.id come chiave
-    if (documentFrontData && documentBackData) {
-      // Per ora, li salviamo in un file temporaneo o in un KV store
-      // In produzione, usare Redis/KV store come Vercel KV
-      console.log(`📎 Documenti ricevuti per sessione ${session.id} (non salvati nei metadata per limiti di dimensione)`);
-
-      // TODO: Implementare storage temporaneo per documenti
-      // await kv.set(`docs:${session.id}`, { documentFrontData, documentBackData }, { ex: 3600 });
+    // Se ci sono documenti, salviamoli temporaneamente in Vercel KV
+    if (documentFrontData && documentBackData && !hasCompiledPrivacy) {
+      try {
+        await kv.set(`docs:${session.id}`, {
+          documentFrontData,
+          documentBackData,
+          profession,
+          documentNumber,
+          documentExpiry,
+          timestamp: Date.now(),
+        }, {
+          ex: 3600, // Scade dopo 1 ora
+        });
+        console.log(`📎 Documenti salvati in KV per sessione ${session.id} (scadenza: 1h)`);
+      } catch (error) {
+        console.error('❌ Errore salvataggio documenti in KV:', error);
+        // Non bloccare il flusso se KV non è configurato
+        console.warn('⚠️ Continuando senza documenti - configura VERCEL KV per abilitare upload documenti');
+      }
     }
 
     return NextResponse.json({ sessionId: session.id, url: session.url });

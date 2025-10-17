@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { createAndSendInvoice } from '@/lib/fattureincloud';
 import { sendPaymentConfirmationToAdmin, sendPaymentConfirmationToClient } from '@/lib/email';
 import { generatePaymentPrivacyPdf } from '@/lib/pdf';
+import { kv } from '@vercel/kv';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +44,47 @@ export async function POST(request: NextRequest) {
       const amount = parseFloat(metadata.amount);
       const stampDuty = parseFloat(metadata.stampDuty);
       const generatePrivacy = metadata.generatePrivacy === 'true';
+      const hasCompiledPrivacy = metadata.hasCompiledPrivacy === 'true';
 
+      // 1. Recupera documenti da KV se presenti
+      let documentsData = null;
+      const documentsAttachments: Array<{ filename: string; content: Buffer }> = [];
+
+      if (!hasCompiledPrivacy) {
+        try {
+          documentsData = await kv.get(`docs:${session.id}`) as {
+            documentFrontData: string;
+            documentBackData: string;
+            profession: string;
+            documentNumber: string;
+            documentExpiry: string;
+          } | null;
+
+          if (documentsData) {
+            console.log(`📎 Documenti recuperati da KV per sessione ${session.id}`);
+
+            // Converti base64 in buffer
+            const frontBuffer = Buffer.from(documentsData.documentFrontData.split(',')[1] || documentsData.documentFrontData, 'base64');
+            const backBuffer = Buffer.from(documentsData.documentBackData.split(',')[1] || documentsData.documentBackData, 'base64');
+
+            documentsAttachments.push(
+              { filename: 'documento_identita_fronte.jpg', content: frontBuffer },
+              { filename: 'documento_identita_retro.jpg', content: backBuffer }
+            );
+
+            // Elimina documenti da KV dopo il recupero
+            await kv.del(`docs:${session.id}`);
+            console.log(`🗑️ Documenti eliminati da KV (sessione ${session.id})`);
+          }
+        } catch (error) {
+          console.error('❌ Errore recupero documenti da KV:', error);
+          // Continua senza documenti
+        }
+      }
+
+      // 2. Genera PDF privacy
       let privacyPdf: Buffer | null = null;
       if (generatePrivacy) {
-        // 1. Genera PDF privacy
         const pdfUint8Array = await generatePaymentPrivacyPdf({
           name: metadata.name,
           email: metadata.email,
@@ -59,6 +97,10 @@ export async function POST(request: NextRequest) {
           citta: metadata.citta,
           provincia: metadata.provincia,
           ipAddress: metadata.ipAddress,
+          // Dati aggiuntivi da metadata o da documentsData
+          profession: metadata.profession || documentsData?.profession,
+          documentNumber: metadata.documentNumber || documentsData?.documentNumber,
+          documentExpiry: metadata.documentExpiry || documentsData?.documentExpiry,
         });
         privacyPdf = Buffer.from(pdfUint8Array);
         console.log('✅ PDF privacy generato');
@@ -66,7 +108,7 @@ export async function POST(request: NextRequest) {
         console.log('⏩ Generazione PDF privacy saltata come richiesto.');
       }
 
-      // 2. Invia email al centro con privacy allegata (se generata)
+      // 3. Invia email al centro con privacy e documenti allegati
       await sendPaymentConfirmationToAdmin(
         {
           name: metadata.name,
@@ -79,7 +121,8 @@ export async function POST(request: NextRequest) {
           stampDuty,
           ipAddress: metadata.ipAddress,
         },
-        privacyPdf
+        privacyPdf,
+        documentsAttachments.length > 0 ? documentsAttachments : undefined
       );
 
       console.log('✅ Email inviata al centro');
