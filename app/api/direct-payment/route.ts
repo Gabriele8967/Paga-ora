@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       partnerDocumentExpiry,
       partnerDocumentFrontData,
       partnerDocumentBackData,
+      receiptData,
     } = body;
 
     if (!amount || !serviceName || !name || !email || !phone || !fiscalCode || !paymentMethod) {
@@ -143,7 +144,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Invia email al centro con privacy e documenti allegati
+    // 4. Prepara ricevuta bonifico se presente
+    if (receiptData) {
+      try {
+        const receiptBuffer = Buffer.from(receiptData.split(',')[1] || receiptData, 'base64');
+        const extension = receiptData.includes('pdf') ? 'pdf' : 'jpg';
+        documentsAttachments.push({
+          filename: `ricevuta_bonifico.${extension}`,
+          content: receiptBuffer
+        });
+        console.log('✅ Ricevuta bonifico preparata per invio');
+      } catch (error) {
+        console.error('❌ Errore preparazione ricevuta:', error);
+        // Continua senza ricevuta
+      }
+    }
+
+    // 5. Invia email al centro con privacy e documenti allegati
     try {
       await sendPaymentConfirmationToAdmin(
         {
@@ -166,7 +183,7 @@ export async function POST(request: NextRequest) {
       // Continua anche se l'email fallisce
     }
 
-    // 3. Invia email al cliente
+    // 6. Invia email al cliente
     try {
       await sendPaymentConfirmationToClient({
         name,
@@ -185,7 +202,7 @@ export async function POST(request: NextRequest) {
       // Continua anche se l'email fallisce
     }
 
-    // 4. Crea e invia fattura
+    // 7. Crea e invia fattura
     let invoiceId: number | null = null;
     try {
       const { invoiceId: createdInvoiceId } = await createAndSendInvoice({
@@ -208,8 +225,8 @@ export async function POST(request: NextRequest) {
       invoiceId = createdInvoiceId;
       if (invoiceId) {
         console.log(`✅ Fattura ${invoiceId} creata`);
-        
-        // 5. Invia fattura via email per bonifici istantanei
+
+        // 8. Invia fattura via email per bonifici istantanei
         if (paymentMethod === 'bonifico_istantaneo') {
           try {
             const stampDuty = calculateStampDuty(parseFloat(amount));

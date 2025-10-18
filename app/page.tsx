@@ -62,6 +62,9 @@ export default function HomePage() {
     partnerDocumentFront: null as File | null,
     partnerDocumentBack: null as File | null,
 
+    // Ricevuta bonifico
+    receiptFile: null as File | null,
+
     // Consensi GDPR
     gdprConsent: false,
     privacyConsent: false,
@@ -114,11 +117,17 @@ export default function HomePage() {
         console.warn('Avvisi CF:', fiscalValidation.warnings);
       }
 
+      // Valida ricevuta bonifico per bonifico_istantaneo
+      if (formData.paymentMethod === 'bonifico_istantaneo' && !formData.receiptFile) {
+        throw new Error('Devi allegare la ricevuta del bonifico istantaneo');
+      }
+
       // Prepara documenti se privacy non compilata
       let documentFrontData = null;
       let documentBackData = null;
       let partnerDocumentFrontData = null;
       let partnerDocumentBackData = null;
+      let receiptData = null;
 
       if (!formData.hasCompiledPrivacy) {
         // Valida campi obbligatori paziente principale
@@ -171,6 +180,17 @@ export default function HomePage() {
         }
       }
 
+      // Prepara ricevuta bonifico se presente
+      if (formData.receiptFile) {
+        try {
+          const receiptResult = await prepareFileForUpload(formData.receiptFile, 1.5);
+          receiptData = receiptResult.data;
+          console.log(`Ricevuta bonifico: ${receiptResult.compressed ? 'compressa' : 'originale'} (${receiptResult.size.toFixed(2)}MB)`);
+        } catch (compressionError) {
+          throw new Error(`Errore nella preparazione della ricevuta: ${compressionError instanceof Error ? compressionError.message : 'Errore sconosciuto'}`);
+        }
+      }
+
       setError('');
 
       // Gestione diversa in base al metodo di pagamento
@@ -213,6 +233,7 @@ export default function HomePage() {
             documentBackData,
             partnerDocumentFrontData,
             partnerDocumentBackData,
+            receiptData,
           }),
         });
 
@@ -434,6 +455,51 @@ export default function HomePage() {
                     {formData.paymentMethod === 'altro' && 'Altro metodo di pagamento'}
                   </p>
                 </div>
+
+                {/* Alert Bonifico Istantaneo */}
+                {formData.paymentMethod === 'bonifico_istantaneo' && (
+                  <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <Landmark className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-amber-900 mb-2">📋 Istruzioni Bonifico Istantaneo</h4>
+                        <ol className="text-sm text-amber-900 space-y-2 list-decimal list-inside">
+                          <li><strong>Effettua il bonifico istantaneo</strong> a Centro Biofertility privatamente</li>
+                          <li><strong>Allega la ricevuta del bonifico</strong> in formato immagine o PDF:</li>
+                        </ol>
+
+                        <div className="mt-3 bg-white rounded-lg p-3 border border-amber-300">
+                          <Label htmlFor="receiptFile" className="text-sm font-semibold text-amber-900">
+                            Ricevuta Bonifico * (obbligatoria)
+                          </Label>
+                          <Input
+                            id="receiptFile"
+                            name="receiptFile"
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setFormData(prev => ({ ...prev, receiptFile: file }));
+                              }
+                            }}
+                            className="mt-2"
+                            required={formData.paymentMethod === 'bonifico_istantaneo'}
+                          />
+                          <p className="text-xs text-amber-700 mt-2">
+                            La ricevuta verrà inviata a <strong>centrimanna2@gmail.com</strong> insieme ai tuoi dati
+                          </p>
+                        </div>
+
+                        <p className="text-sm text-amber-900 mt-3">
+                          <strong>3.</strong> Dopo aver allegato la ricevuta, procedi con il pagamento qui sotto
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {amount > 0 && (
