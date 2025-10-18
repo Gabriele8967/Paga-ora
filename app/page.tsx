@@ -16,8 +16,6 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentStep] = useState(1);
-  const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
-  const [generatePrivacy, setGeneratePrivacy] = useState(true);
 
   const [formData, setFormData] = useState({
     // Dati servizio
@@ -79,20 +77,20 @@ export default function HomePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validazione consensi GDPR obbligatori
     if (!formData.gdprConsent || !formData.privacyConsent) {
       setError('Devi accettare entrambi i consensi per la privacy per procedere');
       return;
     }
 
-    setShowPrivacyPopup(true);
+    // Procedi direttamente senza popup (privacy già gestita prima)
+    proceedWithSubmission();
   };
 
   const proceedWithSubmission = async () => {
     setError('');
     setIsLoading(true);
-    setShowPrivacyPopup(false);
 
     try {
       const amount = parseFloat(formData.amount);
@@ -184,7 +182,7 @@ export default function HomePage() {
           body: JSON.stringify({
             ...formData,
             amount,
-            generatePrivacy,
+            generatePrivacy: !formData.hasCompiledPrivacy, // Genera PDF solo se non ha già compilato la privacy
             documentFrontData,
             documentBackData,
             partnerDocumentFrontData,
@@ -210,7 +208,7 @@ export default function HomePage() {
           body: JSON.stringify({
             ...formData,
             amount,
-            generatePrivacy,
+            generatePrivacy: !formData.hasCompiledPrivacy, // Genera PDF solo se non ha già compilato la privacy
             documentFrontData,
             documentBackData,
             partnerDocumentFrontData,
@@ -1079,51 +1077,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
-      {showPrivacyPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full text-center">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Modulo Privacy</h3>
-              <p className="text-gray-600 text-sm">
-                Hai già compilato e firmato il modulo privacy per il trattamento dei dati personali e sensibili con il Centro Biofertility?
-              </p>
-            </div>
-            
-            <div className="space-y-3 mb-6">
-              <Button
-                onClick={() => {
-                  setGeneratePrivacy(false);
-                  proceedWithSubmission();
-                }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3"
-              >
-                ✅ Sì, ho già firmato il modulo privacy
-              </Button>
-              <Button
-                onClick={() => {
-                  setGeneratePrivacy(true);
-                  proceedWithSubmission();
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
-              >
-                📝 No, è la prima volta - Genera modulo privacy
-              </Button>
-            </div>
-            
-            <Button
-              onClick={() => setShowPrivacyPopup(false)}
-              className="text-gray-500 hover:text-gray-700"
-              variant="ghost"
-            >
-              Annulla
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
